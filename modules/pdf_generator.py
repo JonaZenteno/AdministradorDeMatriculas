@@ -5,6 +5,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 import os
+import sys
 from datetime import datetime
 
 class PDFGenerator:
@@ -15,19 +16,37 @@ class PDFGenerator:
 
     def create_custom_styles(self):
         self.styles.add(ParagraphStyle(name='Header', fontSize=14, leading=16, alignment=1, spaceAfter=20, fontName='Helvetica-Bold'))
+        self.styles.add(ParagraphStyle(name='HeaderNoSpace', fontSize=14, leading=16, alignment=1, spaceAfter=5, fontName='Helvetica-Bold'))
         self.styles.add(ParagraphStyle(name='SubHeader', fontSize=12, leading=14, spaceAfter=10, fontName='Helvetica-Bold'))
         self.styles.add(ParagraphStyle(name='NormalSmall', fontSize=10, leading=12))
         self.styles.add(ParagraphStyle(name='Signature', fontSize=10, leading=12, alignment=1, spaceBefore=40))
+
+    def get_asset_path(self, filename):
+        """Get the absolute path to an asset file."""
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_dir, "assets", filename)
 
     def generate_pdf(self, student_data):
         doc = SimpleDocTemplate(self.filename, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
         elements = []
 
-        # Logo placeholders (optional)
-        # elements.append(Image("assets/logo.png", width=50, height=50))
+        # Logo
+        logo_path = self.get_asset_path("logo.png")
+        if os.path.exists(logo_path):
+            try:
+                logo = Image(logo_path, width=50, height=50)
+                logo.hAlign = 'CENTER'
+                elements.append(logo)
+                elements.append(Spacer(1, 12))
+            except Exception as e:
+                print(f"Error loading logo in PDF: {e}")
 
         # Title
-        elements.append(Paragraph("FICHA DE MATRÍCULA AÑO ESCOLAR 2024", self.styles['Header']))
+        elements.append(Paragraph("FICHA DE MATRÍCULA", self.styles['HeaderNoSpace']))
+        elements.append(Paragraph("ESCUELA LOS LEONES", self.styles['Header']))
         elements.append(Spacer(1, 12))
 
         # Helper to create data rows
@@ -35,7 +54,7 @@ class PDFGenerator:
             elements.append(Paragraph(title, self.styles['SubHeader']))
             data = []
             for key, value in data_dict.items():
-                data.append([Paragraph(f"<b>{key}:</b>", self.styles['NormalSmall']), Paragraph(str(value), self.styles['NormalSmall'])])
+                data.append([Paragraph(f"<b>{key}:</b>", self.styles['NormalSmall']), Paragraph(str(value) if value else '', self.styles['NormalSmall'])])
             
             t = Table(data, colWidths=[150, 350])
             t.setStyle(TableStyle([
@@ -46,63 +65,119 @@ class PDFGenerator:
             elements.append(t)
             elements.append(Spacer(1, 15))
 
-        # 1. Datos del Estudiante
+        # 1. DATOS DE ESTUDIANTE
         student_info = {
-            "N° Matrícula": student_data.get('num_matricula', ''),
-            "Fecha Matrícula": student_data.get('fecha_matricula', ''),
-            "Nombre Completo": student_data.get('nombre_estudiante', ''),
-            "RUT": student_data.get('rut_estudiante', ''),
-            "Fecha Nacimiento": student_data.get('fecha_nacimiento', ''),
-            "Edad": student_data.get('edad', ''),
+            "Nombre": student_data.get('nombre_estudiante', ''),
+            "Fecha nacimiento": student_data.get('fecha_nacimiento', ''),
             "Sexo": student_data.get('sexo', ''),
-            "Dirección": student_data.get('direccion', ''),
-            "Con quién vive": student_data.get('vive_con', ''),
+            "Nacionalidad": student_data.get('nacionalidad', ''),
+            "RUT": student_data.get('rut_estudiante', ''),
+            "Asiste a PIE": student_data.get('es_pie', ''),
+            "Teléfono": '',  # No disponible en BD
+            "Diagnóstico": student_data.get('diagnostico_pie', ''),
             "Colegio Anterior": student_data.get('colegio_anterior', ''),
-            "Repitencia": student_data.get('repitencia', ''),
-            "PIE": f"{student_data.get('es_pie', 'No')} - {student_data.get('diagnostico_pie', '')}"
+            "Dirección": student_data.get('direccion', ''),
+            "Con quien vive": student_data.get('vive_con', ''),
+            "Repitencia": student_data.get('repitencia', '')
         }
-        create_section("1. ANTECEDENTES DEL ALUMNO", student_info)
+        create_section("DATOS DE ESTUDIANTE", student_info)
 
-        # 2. Datos Apoderado
+        # 2. DATOS DE APODERADO
         guardian_info = {
             "Nombre": student_data.get('nombre_apoderado', ''),
-            "RUT": student_data.get('rut_apoderado', ''),
+            "Rut": student_data.get('rut_apoderado', ''),
             "Teléfono": student_data.get('telefono_apoderado', ''),
             "Parentesco": student_data.get('parentesco_apoderado', ''),
-            "Email": student_data.get('email_apoderado', '')
+            "Correo": student_data.get('email_apoderado', ''),
+            "Profesión u Oficio": student_data.get('profesion_apoderado', ''),
+            "Dirección": student_data.get('direccion_apoderado', '')
         }
-        create_section("2. ANTECEDENTES DEL APODERADO TITULAR", guardian_info)
+        create_section("DATOS DE APODERADO", guardian_info)
 
-        # 3. Contactos Emergencia
-        emergency_info = {
-            "Contacto 1": f"{student_data.get('tutor1_nombre', '')} ({student_data.get('tutor1_telefono', '')})",
-            "Contacto 2": f"{student_data.get('tutor2_nombre', '')} ({student_data.get('tutor2_telefono', '')})"
+        # 3. DATOS DE PADRES
+        parents_info = {
+            "Nombre Madre": student_data.get('nombre_madre', ''),
+            "Rut Madre": student_data.get('rut_madre', ''),
+            "Dirección Madre": student_data.get('direccion_madre', ''),
+            "Escolaridad Madre": student_data.get('escolaridad_madre', ''),
+            "Profesión u Oficio Madre": student_data.get('profesion_madre', ''),
+            "Teléfono Madre": '',  # No disponible en BD
+            "Nombre Padre": student_data.get('nombre_padre', ''),
+            "Rut Padre": student_data.get('rut_padre', ''),
+            "Dirección Padre": student_data.get('direccion_padre', ''),
+            "Escolaridad Padre": student_data.get('escolaridad_padre', ''),
+            "Profesión u Oficio Padre": student_data.get('profesion_padre', ''),
+            "Teléfono Padre": ''  # No disponible en BD
         }
-        create_section("3. CONTACTOS DE EMERGENCIA", emergency_info)
+        create_section("DATOS DE PADRES", parents_info)
 
-        # 4. Salud
+        # 4. DATOS DE 1° TUTOR Y/O APODERADO SUPLENTE
+        tutor1_info = {
+            "Nombre": student_data.get('tutor1_nombre', ''),
+            "Rut": student_data.get('tutor1_rut', ''),
+            "Dirección": '',  # No disponible en BD
+            "Teléfono": student_data.get('tutor1_telefono', '')
+        }
+        create_section("DATOS DE 1° TUTOR Y/O APODERADO SUPLENTE", tutor1_info)
+
+        # 5. DATOS DE 2° TUTOR Y/O APODERADO SUPLENTE
+        tutor2_info = {
+            "Nombre": student_data.get('tutor2_nombre', ''),
+            "Rut": student_data.get('tutor2_rut', ''),
+            "Dirección": '',  # No disponible en BD
+            "Teléfono": student_data.get('tutor2_telefono', ''),
+            "Parentesco": ''  # No disponible en BD
+        }
+        create_section("DATOS DE 2° TUTOR Y/O APODERADO SUPLENTE", tutor2_info)
+
+        # 6. SALUD ESTUDIANTE
         health_info = {
-            "Tratamiento Médico": student_data.get('tratamiento_medico', ''),
-            "Alergias": student_data.get('alergias', '')
+            "Ha estado en tratamiento Psicológico, Psicopedagógico, Fonoaudiológico u otro": '',
+            "En la actualidad se encuentra en algún tratamiento": student_data.get('tratamiento_medico', ''),
+            "Posee contraindicación para realizar actividad Física y/o deportiva": student_data.get('contraindicacion_fisica', ''),
+            "Es alérgico a algún medicamento": student_data.get('alergias', '')
         }
-        create_section("4. ANTECEDENTES DE SALUD", health_info)
+        create_section("SALUD ESTUDIANTE", health_info)
 
-        # 5. Observaciones (Nueva Sección)
+        # 7. SISTEMA DE ADMISIÓN ESCOLAR
+        sae_info = {
+            "Sistema de Admisión Escolar": ''  # No disponible en BD
+        }
+        create_section("SISTEMA DE ADMISIÓN ESCOLAR", sae_info)
+
+        # 8. ANTECEDENTES SOCIALES DEL ESTUDIANTE
+        social_info = {
+            "Registro Social": student_data.get('rsh_puntaje', ''),
+            "Prioritario": student_data.get('alumno_prioritario', ''),
+            "Puntaje": student_data.get('rsh_puntaje', ''),
+            "Beca": student_data.get('beca', '')
+        }
+        create_section("ANTECEDENTES SOCIALES DEL ESTUDIANTE", social_info)
+
+        # 9. COMPROMISO
+        elements.append(Paragraph("COMPROMISO", self.styles['SubHeader']))
+        compromiso_text = """El establecimiento se compromete a recibir los textos escolares que proveerá el Ministerio de Educación para el año 2026 y a entregárselos a los profesores y estudiantes. Además, se compromete a informar por escrito esta decisión a los padres y apoderados."""
+        elements.append(Paragraph(compromiso_text, self.styles['NormalSmall']))
+        elements.append(Spacer(1, 15))
+
+        # 10. USO DE IMAGEN
+        elements.append(Paragraph("USO DE IMAGEN", self.styles['SubHeader']))
+        imagen_text = f"""Autorizo la difusión de imagen de mi hijo(a) en la página del establecimiento, con el fin de recoger, potenciar y difundir las buenas prácticas pedagógicas desarrolladas por nuestro establecimiento educacional. <b>Autorización: {'SI' if student_data.get('aut_imagen') == 1 else 'NO'}</b>"""
+        elements.append(Paragraph(imagen_text, self.styles['NormalSmall']))
+        elements.append(Spacer(1, 15))
+
+        # 11. TOMA CONOCIMIENTO DE REGLAMENTOS INSTITUCIONALES
+        elements.append(Paragraph("TOMA CONOCIMIENTO DE REGLAMENTOS INSTITUCIONALES", self.styles['SubHeader']))
+        reglamento_text = f"""Los padres, apoderados o tutores aceptan el proyecto educativo institucional de nuestro Establecimiento y se comprometen a una total colaboración con el cumplimiento de este. Así mismo certifican que los datos aportados a esta ficha son ciertos, sin que figure ninguna falsedad u omisión de los mismos. El Apoderado/Tutor toma conocimiento quedándose con una copia de este documento. Toma conocimiento y acepta Reglamento de Convivencia Escolar 2026. Toma conocimiento y acepta Reglamento de Promoción y Evaluación Escolar Año 2026. Extractos de Reglamentos Institucionales Año 2026. Estos serán socializados en la primera reunión de apoderados del año, por redes sociales y grupos de cursos. <b>Aceptación: {' SI' if student_data.get('aut_reglamento') == 1 else ' NO'}</b>"""
+        elements.append(Paragraph(reglamento_text, self.styles['NormalSmall']))
+        elements.append(Spacer(1, 15))
+
+        # 12. OBSERVACIONES
         obs_text = student_data.get('observaciones', '')
-        if obs_text:
-            elements.append(Paragraph("5. OBSERVACIONES", self.styles['SubHeader']))
-            elements.append(Paragraph(obs_text, self.styles['NormalSmall']))
-            elements.append(Spacer(1, 15))
+        elements.append(Paragraph("OBSERVACIONES", self.styles['SubHeader']))
+        elements.append(Paragraph(obs_text if obs_text else '', self.styles['NormalSmall']))
+        elements.append(Spacer(1, 15))
 
-        # Declaration Text
-        elements.append(Spacer(1, 20))
-        declaration_text = """
-        Declaro conocer y aceptar el Proyecto Educativo Institucional, el Reglamento Interno y el Reglamento de Evaluación. 
-        Asimismo, autorizo el uso de la imagen de mi pupilo para fines pedagógicos y de difusión del establecimiento, 
-        según lo marcado en la ficha.
-        """
-        elements.append(Paragraph(declaration_text, self.styles['NormalSmall']))
-        
         # Signatures
         elements.append(Spacer(1, 50))
         data_sig = [

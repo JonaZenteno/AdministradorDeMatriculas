@@ -1,6 +1,8 @@
 import sqlite3
 import pandas as pd
 from datetime import datetime
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.utils import get_column_letter
 
 import os
 import sys
@@ -20,14 +22,23 @@ class DBManager:
     def get_connection(self):
         return sqlite3.connect(self.db_name)
 
+    def get_asset_path(self, filename):
+        """Get the absolute path to an asset file."""
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_dir, "assets", filename)
+
     def create_tables(self):
         """Creates the main table for enrollments if it doesn't exist."""
         query = """
         CREATE TABLE IF NOT EXISTS estudiantes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            num_matricula TEXT, -- Nuevo campo
+            num_matricula TEXT, 
             fecha_matricula TEXT,
-            observaciones TEXT, -- Nuevo campo
+            curso_matricula TEXT, -- Nuevo campo
+            observaciones TEXT, 
             
             -- Datos del Estudiante
             nombre_estudiante TEXT NOT NULL,
@@ -111,7 +122,8 @@ class DBManager:
         
         new_columns = {
             'num_matricula': 'TEXT',
-            'observaciones': 'TEXT'
+            'observaciones': 'TEXT',
+            'curso_matricula': 'TEXT'
         }
         
         for col_name, col_type in new_columns.items():

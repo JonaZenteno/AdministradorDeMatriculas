@@ -4,6 +4,9 @@ from modules.database import DBManager
 from modules.pdf_generator import PDFGenerator
 from tkinter import filedialog
 from datetime import datetime
+from PIL import Image
+import os
+import sys
 
 ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -22,17 +25,45 @@ class SchoolApp(ctk.CTk):
 
         # Layout configuration
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1) # Row 1 captures the space for content now
 
-        # Tabview
-        self.tabview = ctk.CTkTabview(self, width=1000, height=600)
-        self.tabview.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        # ---- Header Frame ----
+        self.header_frame = ctk.CTkFrame(self, height=80, corner_radius=0)
+        self.header_frame.grid(row=0, column=0, sticky="ew")
+        
+        # Logo in Header
+        logo_path = self.get_asset_path("logo.png")
+        if os.path.exists(logo_path):
+            try:
+                header_image = ctk.CTkImage(light_image=Image.open(logo_path),
+                                          dark_image=Image.open(logo_path),
+                                          size=(50, 50))
+                self.header_logo = ctk.CTkLabel(self.header_frame, image=header_image, text="")
+                self.header_logo.pack(side="left", padx=20, pady=10)
+            except Exception as e:
+                print(f"Error loading header logo: {e}")
+
+        # Title in Header
+        self.header_title = ctk.CTkLabel(self.header_frame, text="Sistema de Matrícula Escolar - Escuela Los Leones", 
+                                       font=ctk.CTkFont(size=20, weight="bold"))
+        self.header_title.pack(side="left", padx=10)
+
+        # Tabview (Now in Row 1)
+        self.tabview = ctk.CTkTabview(self, width=1000)
+        self.tabview.grid(row=1, column=0, padx=20, pady=20, sticky="nsew")
         
         self.tab_form = self.tabview.add("Ficha de Matrícula")
         self.tab_list = self.tabview.add("Base de Datos")
 
         self.setup_form_tab()
         self.setup_list_tab()
+
+    def get_asset_path(self, filename):
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base_dir, "assets", filename)
 
     def setup_form_tab(self):
         self.scroll_frame = ctk.CTkScrollableFrame(self.tab_form, label_text="Formulario de Ingreso")
@@ -51,33 +82,35 @@ class SchoolApp(ctk.CTk):
         self.entry_fecha_matricula = self.add_entry("Fecha Matrícula:", 1, 1, default=datetime.now().strftime("%d-%m-%Y"))
         
         # Row 2
-        self.entry_nombre_est = self.add_entry("Nombre Completo:", 2, 0)
-
-        # Row 2
+        self.entry_curso = self.add_entry("Curso al que matricula:", 2, 0)
         self.entry_rut_est = self.add_entry("RUT:", 2, 1)
-        self.entry_fecha_nac = self.add_entry("Fecha Nacimiento:", 3, 0, default="", placeholder="dd-mm-yyyy")
 
         # Row 3
-        self.entry_nacionalidad = self.add_entry("Nacionalidad:", 3, 1)
-        self.entry_edad = self.add_entry("Edad:", 4, 0)
+        self.entry_nombre_est = self.add_entry("Nombre Completo:", 3, 0)
+        self.entry_fecha_nac = self.add_entry("Fecha Nacimiento:", 3, 1, default="", placeholder="dd-mm-yyyy")
+        self.entry_fecha_nac.bind("<KeyRelease>", self.format_date_and_calculate_age)
 
         # Row 4
-        self.entry_sexo = self.add_entry("Sexo:", 4, 1) 
-        self.entry_direccion = self.add_entry("Dirección:", 5, 0)
+        self.entry_nacionalidad = self.add_entry("Nacionalidad:", 4, 0)
+        self.entry_edad = self.add_entry("Edad:", 4, 1)
 
         # Row 5
-        self.entry_comuna = self.add_entry("Comuna:", 5, 1)
-        self.entry_vive_con = self.add_entry("Con quién vive:", 6, 0)
+        self.entry_sexo = self.add_entry("Sexo:", 5, 0) 
+        self.entry_direccion = self.add_entry("Dirección:", 5, 1)
 
         # Row 6
-        self.entry_colegio_ant = self.add_entry("Colegio Anterior:", 6, 1)
+        self.entry_comuna = self.add_entry("Comuna:", 6, 0)
+        self.entry_vive_con = self.add_entry("Con quién vive:", 6, 1)
+
+        # Row 7
+        self.entry_colegio_ant = self.add_entry("Colegio Anterior:", 7, 0)
         
         # Repitencia (Radiobuttons)
         self.lbl_repitencia = ctk.CTkLabel(self.scroll_frame, text="¿Repitencia?:")
-        self.lbl_repitencia.grid(row=7, column=0, sticky="w", padx=10)
+        self.lbl_repitencia.grid(row=8, column=0, sticky="w", padx=10)
         
         self.frame_repitencia = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        self.frame_repitencia.grid(row=7, column=1, sticky="w", padx=10)
+        self.frame_repitencia.grid(row=8, column=1, sticky="w", padx=10)
         self.repitencia_var = ctk.StringVar(value="No")
         self.rb_repitencia_si = ctk.CTkRadioButton(self.frame_repitencia, text="Si", variable=self.repitencia_var, value="Si")
         self.rb_repitencia_si.pack(side="left", padx=(0, 20))
@@ -206,10 +239,44 @@ class SchoolApp(ctk.CTk):
             entry.insert(0, default)
         return entry
 
+    def format_date_and_calculate_age(self, event):
+        entry = self.entry_fecha_nac
+        text = entry.get()
+        
+        # Remove non-digits
+        clean_text = ''.join(filter(str.isdigit, text))
+        
+        formatted = clean_text
+        if len(clean_text) > 2:
+            formatted = clean_text[:2] + '-' + clean_text[2:]
+        if len(clean_text) > 4:
+            formatted = formatted[:5] + '-' + clean_text[4:8]
+            
+        # Limit length
+        if len(formatted) > 10:
+            formatted = formatted[:10]
+            
+        if text != formatted:
+             entry.delete(0, 'end')
+             entry.insert(0, formatted)
+
+        # Calculate Age
+        if len(formatted) == 10:
+            try:
+                dob = datetime.strptime(formatted, "%d-%m-%Y")
+                today = datetime.now()
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+                
+                self.entry_edad.delete(0, 'end')
+                self.entry_edad.insert(0, str(age))
+            except ValueError:
+                pass
+
     def get_form_data(self):
         raw_data = {
             "num_matricula": self.entry_num_matricula.get(),
             "fecha_matricula": self.entry_fecha_matricula.get(),
+            "curso_matricula": self.entry_curso.get(),
             "nombre_estudiante": self.entry_nombre_est.get(),
             "rut_estudiante": self.entry_rut_est.get(),
             "fecha_nacimiento": self.entry_fecha_nac.get(),
@@ -260,7 +327,7 @@ class SchoolApp(ctk.CTk):
     def clear_form(self):
         # Clear entries
         entries = [
-            self.entry_num_matricula, self.entry_nombre_est, self.entry_rut_est, self.entry_fecha_nac,
+            self.entry_num_matricula, self.entry_curso, self.entry_nombre_est, self.entry_rut_est, self.entry_fecha_nac,
             self.entry_nacionalidad, self.entry_edad, self.entry_sexo, self.entry_direccion,
             self.entry_comuna, self.entry_vive_con, self.entry_colegio_ant,
             self.entry_diag_pie, self.entry_nom_apo, self.entry_rut_apo, self.entry_tel_apo,
@@ -310,6 +377,7 @@ class SchoolApp(ctk.CTk):
 
         set_entry(self.entry_num_matricula, data.get('num_matricula'))
         set_entry(self.entry_fecha_matricula, data.get('fecha_matricula'))
+        set_entry(self.entry_curso, data.get('curso_matricula'))
         set_entry(self.entry_nombre_est, data.get('nombre_estudiante'))
         set_entry(self.entry_rut_est, data.get('rut_estudiante'))
         set_entry(self.entry_fecha_nac, data.get('fecha_nacimiento'))
@@ -419,7 +487,7 @@ class SchoolApp(ctk.CTk):
         
         # Define ALL columns
         self.columns = [
-            "ID", "N° Matrícula", "Fecha Matrícula", "Nombre Estudiante", "RUT Estudiante", 
+            "ID", "N° Matrícula", "Fecha Matrícula", "Curso", "Nombre Estudiante", "RUT Estudiante", 
             "Fecha Nacimiento", "Nacionalidad", "Edad", "Sexo", "Dirección", "Comuna", 
             "Vive Con", "Colegio Anterior", "Repitencia", "PIE", "Diag. PIE", 
             "Nombre Apoderado", "RUT Apoderado", "Teléfono Apoderado", "Parentesco", 
@@ -465,6 +533,7 @@ class SchoolApp(ctk.CTk):
                 s.get('id', ''),
                 s.get('num_matricula', ''),
                 s.get('fecha_matricula', ''),
+                s.get('curso_matricula', ''),
                 s.get('nombre_estudiante', ''),
                 s.get('rut_estudiante', ''),
                 s.get('fecha_nacimiento', ''),
@@ -514,6 +583,7 @@ class SchoolApp(ctk.CTk):
                 s.get('id', ''),
                 s.get('num_matricula', ''),
                 s.get('fecha_matricula', ''),
+                s.get('curso_matricula', ''),
                 s.get('nombre_estudiante', ''),
                 s.get('rut_estudiante', ''),
                 s.get('fecha_nacimiento', ''),

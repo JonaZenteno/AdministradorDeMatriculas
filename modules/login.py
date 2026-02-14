@@ -1,12 +1,15 @@
 import customtkinter as ctk
 from tkinter import messagebox
+from PIL import Image
+import os
+import sys
 
 class LoginWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("Login - Sistema de Matrícula")
-        self.geometry("400x300")
+        self.geometry("400x450") # Increased height for logo
         self.resizable(False, False)
 
         self.authenticated = False
@@ -16,11 +19,30 @@ class LoginWindow(ctk.CTk):
 
         self.setup_ui()
 
+    def get_asset_path(self, filename):
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_dir, "assets", filename)
+
     def setup_ui(self):
+        # Logo
+        logo_path = self.get_asset_path("logo.png")
+        if os.path.exists(logo_path):
+            try:
+                my_image = ctk.CTkImage(light_image=Image.open(logo_path),
+                                      dark_image=Image.open(logo_path),
+                                      size=(100, 100))
+                self.logo_label = ctk.CTkLabel(self, image=my_image, text="")
+                self.logo_label.pack(pady=(20, 10))
+            except Exception as e:
+                print(f"Error loading logo: {e}")
+
         # Title Label
         self.lbl_title = ctk.CTkLabel(self, text="SISTEMA DE ADMINISTRACIÓN DE\nMATRICULAS ESCUELA LOS LEONES", 
                                       font=ctk.CTkFont(size=16, weight="bold"), justify="center")
-        self.lbl_title.pack(pady=(30, 20), padx=20)
+        self.lbl_title.pack(pady=(10, 20), padx=20)
 
         # Username
         self.entry_user = ctk.CTkEntry(self, placeholder_text="Usuario")
