@@ -117,8 +117,6 @@ class SchoolApp(ctk.CTk):
         self.rb_repitencia_no = ctk.CTkRadioButton(self.frame_repitencia, text="No", variable=self.repitencia_var, value="No")
         self.rb_repitencia_no.pack(side="left")
 
-        # PIE
-        self.add_section_header("Programa PIE", 8)
         
         self.lbl_pie = ctk.CTkLabel(self.scroll_frame, text="¿Asiste a PIE?:")
         self.lbl_pie.grid(row=9, column=0, sticky="w", padx=10)
@@ -365,6 +363,9 @@ class SchoolApp(ctk.CTk):
         self.entry_num_matricula.focus()
 
     def load_student_data(self, data):
+        self.tabview.set("Ficha de Matrícula")
+        self.update_idletasks() # Force UI update
+        
         self.clear_form()
         self.current_student_id = data['id']
         self.btn_save.configure(text="Actualizar Matrícula", fg_color="blue")
@@ -427,9 +428,6 @@ class SchoolApp(ctk.CTk):
         self.entry_observaciones.delete("1.0", "end")
         if data.get('observaciones'):
             self.entry_observaciones.insert("1.0", data.get('observaciones'))
-            
-        # Switch tab
-        self.tabview.set("Ficha de Matrícula")
 
     def save_student(self):
         data = self.get_form_data()
@@ -456,7 +454,7 @@ class SchoolApp(ctk.CTk):
         self.frame_controls = ctk.CTkFrame(self.tab_list)
         self.frame_controls.pack(fill="x", padx=10, pady=10)
 
-        self.entry_search = ctk.CTkEntry(self.frame_controls, placeholder_text="Buscar por Nombre o RUT")
+        self.entry_search = ctk.CTkEntry(self.frame_controls, placeholder_text="Buscar por Nombre, RUT o Curso")
         self.entry_search.pack(side="left", padx=10, fill="x", expand=True)
         
         self.btn_search = ctk.CTkButton(self.frame_controls, text="Buscar", command=self.search_student)
@@ -523,6 +521,9 @@ class SchoolApp(ctk.CTk):
         self.refresh_list()
 
     def refresh_list(self):
+        # Clear search entries when refreshing
+        self.entry_search.delete(0, 'end')
+
         for i in self.tree.get_children():
             self.tree.delete(i)
         

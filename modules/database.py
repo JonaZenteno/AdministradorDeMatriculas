@@ -172,17 +172,19 @@ class DBManager:
             return []
 
     def buscar_estudiantes(self, busqueda):
-        """Search students by name or RUT."""
+        """Search students by name, RUT, or course."""
         query = """
         SELECT * FROM estudiantes 
-        WHERE nombre_estudiante LIKE ? OR rut_estudiante LIKE ?
+        WHERE nombre_estudiante LIKE ? 
+           OR rut_estudiante LIKE ? 
+           OR curso_matricula LIKE ?
         """
         term = f"%{busqueda}%"
         try:
             with self.get_connection() as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute(query, (term, term))
+                cursor.execute(query, (term, term, term))
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
         except sqlite3.Error as e:
