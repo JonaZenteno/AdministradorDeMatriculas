@@ -1,0 +1,2 @@
+NOTA: La imagen de la Card_Dev debe copiarse manualmente a assets/card_dev.png
+(La imagen fue proporcionada como attachment: Jona Zenteno - Ingeniero en Informática)

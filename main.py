@@ -16,7 +16,7 @@ class SchoolApp(ctk.CTk):
         super().__init__()
 
         self.title("Sistema de Matrícula Escolar")
-        self.geometry("1100x700")
+        self.geometry("1100x750")
 
         self.db = DBManager()
         self.pdf_gen = PDFGenerator()
@@ -26,6 +26,7 @@ class SchoolApp(ctk.CTk):
         # Layout configuration
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1) # Row 1 captures the space for content now
+        self.grid_rowconfigure(2, weight=0) # Footer row
 
         # ---- Header Frame ----
         self.header_frame = ctk.CTkFrame(self, height=80, corner_radius=0)
@@ -57,6 +58,21 @@ class SchoolApp(ctk.CTk):
 
         self.setup_form_tab()
         self.setup_list_tab()
+        
+        # ---- Footer Frame ----
+        self.footer_frame = ctk.CTkFrame(self, height=30, fg_color="transparent")
+        self.footer_frame.grid(row=2, column=0, sticky="ew")
+        self.footer_frame.grid_columnconfigure(1, weight=1)
+        
+        # Version label (subtle, right-aligned, clickable)
+        self.version_label = ctk.CTkLabel(
+            self.footer_frame, 
+            text="v1.0.0 - Dominio Público", 
+            font=ctk.CTkFont(size=9),
+            text_color="gray"
+        )
+        self.version_label.grid(row=0, column=1, sticky="e", padx=15, pady=5)
+        self.version_label.bind("<Button-1>", self.show_about_dev)
 
     def get_asset_path(self, filename):
         if getattr(sys, 'frozen', False):
@@ -64,6 +80,88 @@ class SchoolApp(ctk.CTk):
         else:
             base_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base_dir, "assets", filename)
+
+    def show_about_dev(self, event=None):
+        """Abre un diálogo con la Card del Desarrollador"""
+        about_window = ctk.CTkToplevel(self)
+        about_window.title("Acerca del Desarrollador")
+        about_window.geometry("400x500")
+        about_window.resizable(False, False)
+        
+        # Center the window
+        about_window.transient(self)
+        about_window.grab_set()
+        
+        # Frame principal con padding
+        main_frame = ctk.CTkFrame(about_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Intentar cargar la imagen de Card_Dev
+        card_path = self.get_asset_path("card_dev.png")
+        if os.path.exists(card_path):
+            try:
+                card_image = ctk.CTkImage(
+                    light_image=Image.open(card_path),
+                    dark_image=Image.open(card_path),
+                    size=(300, 300)
+                )
+                card_label = ctk.CTkLabel(main_frame, image=card_image, text="")
+                card_label.pack(pady=10)
+                # Mantener referencia para evitar garbage collection
+                self.card_image = card_image
+            except Exception as e:
+                info_label = ctk.CTkLabel(
+                    main_frame, 
+                    text=f"Error cargando imagen: {str(e)}", 
+                    text_color="red"
+                )
+                info_label.pack(pady=10)
+        else:
+            # Si no existe la imagen, mostrar solo el texto (fallback)
+            dev_info = ctk.CTkFrame(main_frame, fg_color="#2a2a2a", corner_radius=10)
+            dev_info.pack(fill="both", expand=True)
+            
+            name_label = ctk.CTkLabel(
+                dev_info,
+                text="Jona Zenteno",
+                font=ctk.CTkFont(size=18, weight="bold")
+            )
+            name_label.pack(pady=(20, 5))
+            
+            role_label = ctk.CTkLabel(
+                dev_info,
+                text="Ingeniero en Informática",
+                font=ctk.CTkFont(size=12),
+                text_color="gray"
+            )
+            role_label.pack(pady=5)
+            
+            linkedin_label = ctk.CTkLabel(
+                dev_info,
+                text="linkedin.com/in/jonathanzenteno/",
+                font=ctk.CTkFont(size=10),
+                text_color="#0077B5"
+            )
+            linkedin_label.pack(pady=(10, 20))
+        
+        # Info de versión y licencia
+        info_text = ctk.CTkLabel(
+            main_frame,
+            text="Sistema de Matrícula Escolar\nVersión 1.0.0\nDominio Público",
+            font=ctk.CTkFont(size=10),
+            text_color="gray",
+            justify="center"
+        )
+        info_text.pack(pady=10)
+        
+        # Botón de cierre
+        close_btn = ctk.CTkButton(
+            main_frame,
+            text="Cerrar",
+            command=about_window.destroy,
+            width=100
+        )
+        close_btn.pack(pady=10)
 
     def setup_form_tab(self):
         self.scroll_frame = ctk.CTkScrollableFrame(self.tab_form, label_text="Formulario de Ingreso")
