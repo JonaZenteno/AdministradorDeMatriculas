@@ -143,7 +143,7 @@ class SchoolApp(ctk.CTk):
         # Parentesco (ComboBox)
         self.lbl_parentesco = ctk.CTkLabel(self.scroll_frame, text="Parentesco:")
         self.lbl_parentesco.grid(row=12, column=2, sticky="w", padx=10)
-        self.combo_parentesco = ctk.CTkComboBox(self.scroll_frame, values=["PADRE", "MADRE", "ABUELA", "TIA", "HERMANA", "OTRO"], width=200)
+        self.combo_parentesco = ctk.CTkComboBox(self.scroll_frame, values=["MADRE", "PADRE", "ABUELA/ABUELO", "TIA/TIO", "HERMANA/HERMANO", "OTRO"], width=200)
         self.combo_parentesco.grid(row=12, column=3, pady=2, padx=10, sticky="ew")
 
         # Row 13
