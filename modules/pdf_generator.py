@@ -106,6 +106,12 @@ class PDFGenerator:
             elements.append(t)
             elements.append(Spacer(1, 15))
 
+        # 0. DATOS DE LA MATRÍCULA
+        enrollment_rows = [
+            [("N° de Matrícula", student_data.get('num_matricula', '')), ("Curso al que postula", student_data.get('curso_matricula', ''))]
+        ]
+        create_section_optimized("DATOS DE LA MATRÍCULA", enrollment_rows)
+
         # 1. DATOS DE ESTUDIANTE (optimized)
         student_rows = [
             [("Nombre", student_data.get('nombre_estudiante', ''))],

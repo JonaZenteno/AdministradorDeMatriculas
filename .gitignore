@@ -1,0 +1,19 @@
+# Database
+matriculas.db
+
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python Cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# PDF results
+*.pdf
+archive/
+test_matricula.pdf
